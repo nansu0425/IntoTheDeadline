@@ -340,6 +340,9 @@ void UPrimitiveSpawnWidget::SpawnActors() const
             );
             NewActor->SetName(ActorName);
 
+            // 월드 옥트리에 등록
+            World->OnActorSpawned(NewActor);
+
             SuccessCount++;
             UE_LOG("PrimitiveSpawn: Created at (%.2f, %.2f, %.2f) scale %.2f using %s",
                 SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z, SpawnScale, MeshPath.c_str());
