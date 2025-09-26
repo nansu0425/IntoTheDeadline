@@ -11,6 +11,7 @@
 #include <ctime>
 #include <string>
 #include "ObjectIterator.h"
+#include "BVHierachy.h"
 #include "../../Octree.h"
 
 //// UE_LOG 대체 매크로
@@ -254,6 +255,16 @@ void UPrimitiveSpawnWidget::RenderWidget()
             if (ImGui::Button("Dump Octree To Log"))
             {
                 Oct->DebugDump();
+            }
+        }
+        if (FBVHierachy* BVH = World->GetBVH())
+        {
+            ImGui::Text("BVH Nodes: %d", BVH->TotalNodeCount());
+            ImGui::Text("BVH Actors: %d", BVH->TotalActorCount());
+            ImGui::Text("BVH Max Depth: %d", BVH->MaxOccupiedDepth());
+            if (ImGui::Button("Dump BVH To Log"))
+            {
+                BVH->DebugDump();
             }
         }
     }
