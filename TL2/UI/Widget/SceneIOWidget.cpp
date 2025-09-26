@@ -16,7 +16,7 @@ USceneIOWidget::USceneIOWidget()
 	, StatusMessageTimer(0.0f)
 	, bIsStatusError(false)
 {
-	strcpy_s(NewLevelNameBuffer, "NewScene");
+	strcpy_s(NewLevelNameBuffer, "Default");
 }
 
 USceneIOWidget::~USceneIOWidget() = default;
