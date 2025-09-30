@@ -10,11 +10,73 @@
 #include "StaticMeshActor.h"    
 #include "StaticMeshComponent.h"
 #include "ResourceManager.h"    
-
+#include "TextRenderComponent.h"
 using namespace std;
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
+
+
+namespace
+{
+	struct FAddableComponentDescriptor
+	{
+		const char* Label;
+		UClass* Class;
+		const char* Description;
+	};
+
+	const TArray<FAddableComponentDescriptor>& GetAddableComponentDescriptors()
+	{
+		static TArray<FAddableComponentDescriptor> Options = []()
+			{
+				TArray<FAddableComponentDescriptor> Result;
+				Result.push_back({ "Static Mesh Component", UStaticMeshComponent::StaticClass(), "Static mesh 렌더링용 컴포넌트" });
+				Result.push_back({ "Camera Component", UCameraComponent::StaticClass(), "카메라 뷰/프로젝션 제공" });
+				Result.push_back({ "Text Render Component", UTextRenderComponent::StaticClass(), "빌보드 텍스트 표시" });
+				Result.push_back({ "Line Component", ULineComponent::StaticClass(), "라인/디버그 드로잉" });
+				Result.push_back({ "AABB Component", UAABoundingBoxComponent::StaticClass(), "바운딩 박스 시각화" });
+				return Result;
+			}();
+		return Options;
+	}
+	bool TryAttachComponentToActor(AActor& Actor, UClass* ComponentClass)
+	{
+		if (!ComponentClass || !ComponentClass->IsChildOf(USceneComponent::StaticClass()))
+		{
+			return false;
+		}
+
+		UObject* RawObject = ObjectFactory::NewObject(ComponentClass);
+		if (!RawObject)
+		{
+			return false;
+		}
+
+		USceneComponent* NewComponent = Cast<USceneComponent>(RawObject);
+		if (!NewComponent)
+		{
+			ObjectFactory::DeleteObject(RawObject);
+			return false;
+		}
+
+		NewComponent->SetOwner(&Actor);
+		NewComponent->SetWorldTransform(Actor.GetActorTransform());
+		Actor.AddComponent(NewComponent);
+
+		if (USceneComponent* const Root = Actor.GetRootComponent())
+		{
+			if (Root != NewComponent)
+			{
+				NewComponent->SetupAttachment(Root, EAttachmentRule::KeepWorld);
+			}
+		}
+
+		NewComponent->InitializeComponent();
+		Actor.MarkPartitionDirty();
+		return true;
+	}
+}
 
 // 파일명 스템(Cube 등) 추출 + .obj 확장자 제거
 static inline FString GetBaseNameNoExt(const FString& Path)
@@ -47,6 +109,7 @@ void UTargetActorTransformWidget::OnSelectedActorCleared()
 	SelectedActor = nullptr;
 	CachedActorName.clear();
 	ResetChangeFlags();
+	SelectedComponent = nullptr;
 }
 
 void UTargetActorTransformWidget::Initialize()
@@ -85,6 +148,7 @@ void UTargetActorTransformWidget::Update()
 	if (SelectedActor != CurrentSelectedActor)
 	{
 		SelectedActor = CurrentSelectedActor;
+		SelectedComponent = nullptr;
 		// 새로 선택된 액터의 이름 캐시
 		if (SelectedActor)
 		{
@@ -151,6 +215,8 @@ void UTargetActorTransformWidget::RenderWidget()
 
 	SelectedActor = GetCurrentSelectedActor();
 	
+
+
 	// 기즈모 스페이스 모드 선택
 	if (GizmoActor)
 	{
@@ -168,6 +234,102 @@ void UTargetActorTransformWidget::RenderWidget()
 	
 	if (SelectedActor)
 	{
+		ImGui::Text("Components");
+		ImGui::SameLine();
+		if (ImGui::Button("+ Add"))
+		{
+			ImGui::OpenPopup("AddComponentPopup");
+		}
+
+		if (ImGui::BeginPopup("AddComponentPopup"))
+		{
+			ImGui::TextUnformatted("Add Component");
+			ImGui::Separator();
+
+			for (const FAddableComponentDescriptor& Descriptor : GetAddableComponentDescriptors())
+			{
+				ImGui::PushID(Descriptor.Label);
+				if (ImGui::Selectable(Descriptor.Label))
+				{
+					if (TryAttachComponentToActor(*SelectedActor, Descriptor.Class))
+					{
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				if (Descriptor.Description && ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", Descriptor.Description);
+				}
+				ImGui::PopID();
+			}
+
+			ImGui::EndPopup();
+		}
+		ImGui::Spacing();
+		ImGui::TextDisabled("Current Components");
+
+		const TArray<USceneComponent*>& Components = SelectedActor->GetComponents();
+		if (Components.IsEmpty())
+		{
+			ImGui::BulletText("None");
+		}
+		else
+		{
+			USceneComponent* ComponentPendingRemoval = nullptr;
+
+			for (USceneComponent* Component : Components)
+			{
+				if (!Component)
+					continue;
+
+				const bool bIsRoot = Component == SelectedActor->GetRootComponent();
+				const bool bIsSelected = (Component == SelectedComponent);
+
+				FString DisplayLabel = Component->GetClass() ? Component->GetClass()->Name : "Unknown Component";
+				if (bIsRoot)
+				{
+					DisplayLabel += " (Root)";
+				}
+
+				ImGui::PushID(Component);
+				if (ImGui::Selectable(DisplayLabel.c_str(), bIsSelected))
+				{
+					SelectedComponent = Component;
+				}
+
+				if (ImGui::BeginPopupContextItem("ComponentContext"))
+				{
+					const bool bCanRemove = !bIsRoot;
+					if (ImGui::MenuItem("Remove", "Delete", false, bCanRemove))
+					{
+						ComponentPendingRemoval = Component;
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::PopID();
+			}
+
+			if (ComponentPendingRemoval)
+			{
+				SelectedActor->RemoveComponent(ComponentPendingRemoval);
+				if (SelectedComponent == ComponentPendingRemoval)
+				{
+					SelectedComponent = nullptr;
+				}
+			}
+		}
+
+		if (SelectedComponent &&
+			SelectedComponent != SelectedActor->GetRootComponent() &&
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+			ImGui::IsKeyPressed(ImGuiKey_Delete))
+		{
+			SelectedActor->RemoveComponent(SelectedComponent);
+			SelectedComponent = nullptr;
+		}
+		ImGui::Separator();
+		ImGui::Spacing();
+
 		// 액터 이름 표시 (캐시된 이름 사용)
 		ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Selected: %s", 
 		                   CachedActorName.c_str());
