@@ -78,10 +78,8 @@ namespace
 	}
 	bool TryAttachComponentToActor(AActor& Actor, UClass* ComponentClass)
 	{
-		if (!ComponentClass || !ComponentClass->IsChildOf(USceneComponent::StaticClass()))
-		{
+		if (!ComponentClass || !ComponentClass->IsChildOf(UActorComponent::StaticClass()))
 			return false;
-		}
 
 		UObject* RawObject = ObjectFactory::NewObject(ComponentClass);
 		if (!RawObject)
@@ -89,26 +87,27 @@ namespace
 			return false;
 		}
 
-		USceneComponent* NewComponent = Cast<USceneComponent>(RawObject);
-		if (!NewComponent)
+		UActorComponent* NewComp = Cast<UActorComponent>(RawObject);
+		if (!NewComp)
 		{
 			ObjectFactory::DeleteObject(RawObject);
 			return false;
 		}
 
-		NewComponent->SetOwner(&Actor);
-		NewComponent->SetWorldTransform(Actor.GetActorTransform());
-		Actor.AddComponent(NewComponent);
+		NewComp->SetOwner(&Actor);
 
-		if (USceneComponent* const Root = Actor.GetRootComponent())
+		// 씬 컴포넌트라면 루트에 붙임
+		if (USceneComponent* SceneComp = Cast<USceneComponent>(NewComp))
 		{
-			if (Root != NewComponent)
+			SceneComp->SetWorldTransform(Actor.GetActorTransform()); // 초기 트랜스폼
+			if (USceneComponent* Root = Actor.GetRootComponent())
 			{
-				NewComponent->SetupAttachment(Root, EAttachmentRule::KeepRelative);
+				SceneComp->SetupAttachment(Root, EAttachmentRule::KeepRelative);
 			}
 		}
 
-		NewComponent->InitializeComponent();
+		// AddOwnedComponent 경유 (Register/Initialize 포함)
+		Actor.AddOwnedComponent(NewComp);
 		Actor.MarkPartitionDirty();
 		return true;
 	}
@@ -431,7 +430,7 @@ void UTargetActorTransformWidget::RenderWidget()
 			// 아직 루트 컴포넌트에 붙은 컴포넌트는 static component밖에 없음.
 			RenderSceneComponentTree(RootComponent, *SelectedActor, SelectedComponent, ComponentPendingRemoval, VisitedComponents);
 
-			const TArray<USceneComponent*>& AllComponents = SelectedActor->GetComponents();
+			const TArray<USceneComponent*>& AllComponents = SelectedActor->GetSceneComponents();
 			for (USceneComponent* Component : AllComponents)
 			{
 				if (!Component || VisitedComponents.count(Component))
@@ -484,7 +483,7 @@ void UTargetActorTransformWidget::RenderWidget()
 
 		if (ComponentPendingRemoval)
 		{
-			SelectedActor->RemoveComponent(ComponentPendingRemoval);
+			SelectedActor->RemoveOwnedComponent(ComponentPendingRemoval);
 			if (SelectedComponent == ComponentPendingRemoval)
 			{
 				SelectedComponent = nullptr;
@@ -511,7 +510,7 @@ void UTargetActorTransformWidget::RenderWidget()
 		// 화면 가로로 꽉 차는 보이지 않는 버튼을 만든다.
 		ImGui::PushStyleColor(ImGuiCol_Separator, ImGui::GetStyle().Colors[ImGuiCol_Separator]);
 		ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0, 0)); // 영향 거의 없음, 습관적 가드
-		ImGui::InvisibleButton("##VerticalSplitter", ImVec2(-FLT_MIN, SplitterThickness));
+		ImGui::InvisibleButton("VerticalSplitter", ImVec2(-FLT_MIN, SplitterThickness));
 		bool SplitterHovered = ImGui::IsItemHovered();
 		bool SplitterActive = ImGui::IsItemActive();
 
