@@ -123,7 +123,6 @@ void UActorTerminationWidget::DeleteSelectedActor()
 	UIManager->ClearTransformWidgetSelection();
 
 	// 기즈모가 이 액터를 타겟으로 잡고 있다면 해제
-	extern UEditorEngine GEngine;
 	if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
 	{
 		if (Gizmo->GetTargetActor() == ActorToDelete)

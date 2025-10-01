@@ -39,7 +39,6 @@ void UCameraControlWidget::Initialize()
 		UIManager->RegisterCameraControlWidget(this);
 	}
 	// GizmoActor 참조 획득
-	extern UEditorEngine GEngine;
 	if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
 	{
 		CurrentGizmoSpace = Gizmo->GetSpace();

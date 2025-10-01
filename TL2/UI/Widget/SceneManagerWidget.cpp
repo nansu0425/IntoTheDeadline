@@ -374,7 +374,6 @@ void USceneManagerWidget::HandleActorSelection(AActor* Actor)
     {
         UIManager->SetPickedActor(Actor);
         
-        extern UEditorEngine GEngine;
         if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
         {
             Gizmo->SetActorLocation(Actor->GetActorLocation());
