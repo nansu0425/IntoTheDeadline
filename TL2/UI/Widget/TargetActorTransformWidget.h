@@ -45,13 +45,6 @@ private:
 	bool bPositionChanged = false;
 	bool bUniformScale = false;
 	
-	// 기즈모 설정
-	EGizmoSpace CurrentGizmoSpace = EGizmoSpace::World;
-	AGizmoActor* GizmoActor = nullptr;
-	
-	// 월드 정보 (옵션)
-	uint32 WorldActorCount = 0;
-	
 	// 헬퍼 메서드
 	AActor* GetCurrentSelectedActor() const;
 	void ResetChangeFlags();

@@ -204,15 +204,6 @@ void UTargetActorTransformWidget::Initialize()
 {
 	// UIManager 참조 확보
 	UIManager = &UUIManager::GetInstance();
-	
-	// GizmoActor 참조 획득
-	GizmoActor = UIManager->GetGizmoActor();
-	
-	// 초기 기즈모 스페이스 모드 설정
-	if (GizmoActor)
-	{
-		CurrentGizmoSpace = GizmoActor->GetSpace();
-	}
 
 	// Transform 위젯을 UIManager에 등록하여 선택 해제 브로드캐스트를 받을 수 있게 함
 	if (UIManager)
@@ -256,24 +247,11 @@ void UTargetActorTransformWidget::Update()
 		}
 	}
 
-	// GizmoActor 참조 업데이트
-	if (!GizmoActor && UIManager)
-	{
-		GizmoActor = UIManager->GetGizmoActor();
-	}
-
 	if (SelectedActor)
 	{
 		// 액터가 선택되어 있으면 항상 트랜스폼 정보를 업데이트하여
 		// 기즈모 조작을 실시간으로 UI에 반영합니다.
 		UpdateTransformFromActor();
-	}
-	
-	// 월드 정보 업데이트 (옵션)
-	if (UIManager && UIManager->GetWorld())
-	{
-		UWorld* World = UIManager->GetWorld();
-		WorldActorCount = static_cast<uint32>(World->GetActors().size());
 	}
 }
 
@@ -307,52 +285,21 @@ void UTargetActorTransformWidget::RenderWidget()
 		{
 			CachedActorName.clear();
 		}
-		// 월드 정보 표시
-		ImGui::Text("World Information");
-		ImGui::Text("Actor Count: %u", WorldActorCount);
-		ImGui::Separator();
-
-		AGridActor* gridActor = UIManager->GetWorld()->GetGridActor();
-		if (gridActor)
-		{
-			float currentLineSize = gridActor->GetLineSize();
-			if (ImGui::DragFloat("Grid Spacing", &currentLineSize, 0.1f, 0.1f, 1000.0f))
-			{
-				gridActor->SetLineSize(currentLineSize);
-				EditorINI["GridSpacing"] = std::to_string(currentLineSize);
-			}
-		}
-		else
-		{
-			ImGui::Text("GridActor not found in the world.");
-		}
-
-		ImGui::Text("Transform Editor");
-
-		SelectedActor = GetCurrentSelectedActor();
-
-
-		// 기즈모 스페이스 모드 선택
-		if (GizmoActor)
-		{
-			const char* spaceItems[] = { "World", "Local" };
-			int currentSpaceIndex = static_cast<int>(CurrentGizmoSpace);
-
-			if (ImGui::Combo("Gizmo Space", &currentSpaceIndex, spaceItems, IM_ARRAYSIZE(spaceItems)))
-			{
-				CurrentGizmoSpace = static_cast<EGizmoSpace>(currentSpaceIndex);
-
-				GizmoActor->SetSpaceWorldMatrix(CurrentGizmoSpace, SelectedActor);
-			}
-			ImGui::Separator();
-		}
+		
 	}
 	// 컴포넌트 관리 UI
 	if (SelectedActor)
 	{
-		ImGui::Text("Components");
+		ImGui::Text(CachedActorName.c_str());
 		ImGui::SameLine();
-		if (ImGui::Button("+ Add"))
+		// 버튼 크기
+		const float ButtonWidth = 60.0f;
+		const float ButtonHeight = 25.0f;
+		// 남은 영역에서 버튼 폭만큼 오른쪽으로 밀기 (클램프)
+		float Avail = ImGui::GetContentRegionAvail().x;
+		float NewX = ImGui::GetCursorPosX() + std::max(0.0f, Avail - ButtonWidth);
+		ImGui::SetCursorPosX(NewX);
+		if (ImGui::Button("+ 추가", ImVec2(ButtonWidth, ButtonHeight)))
 		{
 			ImGui::OpenPopup("AddComponentPopup");
 		}
@@ -386,10 +333,22 @@ void UTargetActorTransformWidget::RenderWidget()
 
 		AActor* ActorPendingRemoval = nullptr;
 		USceneComponent* ComponentPendingRemoval = nullptr;
-
 		USceneComponent* RootComponent = SelectedActor->GetRootComponent();
 		const bool bActorSelected = (SelectedActor != nullptr && SelectedComponent == nullptr);
 
+		// 1) 컴포넌트 트리 박스 크기 관련
+		static float PaneHeight = 120.0f;        // 초기값
+		const float SplitterThickness = 6.0f;    // 드래그 핸들 두께
+		const float MinTop = 1.0f;             // 위 박스 최소 높이
+		const float MinBottom = 0.0f;          // 아래 영역 최소 높이
+
+		// 현재 창의 남은 영역 높이(이 함수 블록의 시작 시점 기준)
+		const float WindowAvailY = ImGui::GetContentRegionAvail().y;
+
+		// 창이 줄어들었을 때 위/아래 최소 높이를 고려해 클램프
+		PaneHeight = std::clamp(PaneHeight, MinTop, std::max(MinTop, WindowAvailY - (MinBottom + SplitterThickness)));
+
+		ImGui::BeginChild("ComponentBox", ImVec2(0, PaneHeight), true);
 		ImGui::PushID("ActorDisplay");
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.3f, 1.0f));
 
@@ -498,8 +457,38 @@ void UTargetActorTransformWidget::RenderWidget()
 			return; // 방금 제거된 액터에 대한 나머지 UI 갱신 건너뜀
 		}
 
+		ImGui::EndChild();
+		// 2) 스플리터(드래그 핸들)
+		// 화면 가로로 꽉 차는 보이지 않는 버튼을 만든다.
+		ImGui::PushStyleColor(ImGuiCol_Separator, ImGui::GetStyle().Colors[ImGuiCol_Separator]);
+		ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0, 0)); // 영향 거의 없음, 습관적 가드
+		ImGui::InvisibleButton("##VerticalSplitter", ImVec2(-FLT_MIN, SplitterThickness));
+		bool SplitterHovered = ImGui::IsItemHovered();
+		bool SplitterActive = ImGui::IsItemActive();
 
-		ImGui::Separator();
+		// 커서 모양 변경
+		if (SplitterHovered || SplitterActive)
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+		// 드래그 중이면 높이 조정
+		if (SplitterActive)
+		{
+			PaneHeight += ImGui::GetIO().MouseDelta.y;
+			// 다시 클램프 (위/아래 최소 높이 유지)
+			PaneHeight = std::clamp(PaneHeight, MinTop, std::max(MinTop, ImGui::GetContentRegionAvail().y + PaneHeight /* 아래 계산상 보정 */
+				+ SplitterThickness - MinBottom));
+		}
+
+		// 얇은 선을 그려 시각적 구분(선택)
+		{
+			ImVec2 Min = ImGui::GetItemRectMin();
+			ImVec2 Max = ImGui::GetItemRectMax();
+			float Y = 0.5f * (Min.y + Max.y);
+			ImGui::GetWindowDrawList()->AddLine(ImVec2(Min.x, Y), ImVec2(Max.x, Y),
+				ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
+		}
+		ImGui::PopStyleVar();
+		ImGui::PopStyleColor();
 		ImGui::Spacing();
 		
 		// Location 편집
@@ -547,28 +536,6 @@ void UTargetActorTransformWidget::RenderWidget()
 		{
 			UpdateTransformFromActor();
 			ResetChangeFlags();
-		}
-		
-		// 기즈모 스페이스 빠른 전환 버튼
-		if (GizmoActor)
-		{
-			ImGui::Separator();
-			const char* buttonText = CurrentGizmoSpace == EGizmoSpace::World ? 
-				"Switch to Local" : "Switch to World";
-			
-			if (ImGui::Button(buttonText))
-			{
-				// 스페이스 모드 전환
-				CurrentGizmoSpace = (CurrentGizmoSpace == EGizmoSpace::World) ? 
-					EGizmoSpace::Local : EGizmoSpace::World;
-				
-				// 기즈모 액터에 스페이스 설정 적용
-				GizmoActor->SetSpaceWorldMatrix(CurrentGizmoSpace, SelectedActor);
-			}
-			
-			ImGui::SameLine();
-			ImGui::Text("Current: %s", 
-				CurrentGizmoSpace == EGizmoSpace::World ? "World" : "Local");
 		}
 		
 		ImGui::Spacing();
