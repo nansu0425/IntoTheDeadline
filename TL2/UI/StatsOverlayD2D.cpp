@@ -8,6 +8,7 @@
 #include "MemoryManager.h"
 #include "Picking.h"
 #include "PlatformTime.h"
+#include "DecalStatManager.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
@@ -227,23 +228,25 @@ void UStatsOverlayD2D::Draw()
     if (bShowDecal)
     {
         // 1. FDecalStatManager로부터 통계 데이터를 가져옵니다.
-        uint32_t TotalCount = 0; //FDecalStatManager::Get().GetTotalDecalCount();
-        uint32_t VisibleCount = 0; //FDecalStatManager::Get().GetVisibleDecalCount();
-        uint32_t RenderedCount = 0; //FDecalStatManager::Get().GetRenderedDecalCount();
-        double AverageTime = 0; //FDecalStatManager::Get().GetAverageTimeMS();
-        double TotalTime = 0; //FDecalStatManager::Get().GetDecalTotalTimeMS();
+        uint32_t TotalCount = FDecalStatManager::GetInstance().GetTotalDecalComponentCount();
+        uint32_t VisibleDecalCount = FDecalStatManager::GetInstance().GetVisibleDecalCount();
+        uint32_t AffectedMeshCount = FDecalStatManager::GetInstance().GetAffectedMeshCount();
+        double TotalTime = FDecalStatManager::GetInstance().GetDecalPassTimeMS();
+        double AverageTimePerDecal = FDecalStatManager::GetInstance().GetAverageTimePerDecalMS();
+        double AverageTimePerDraw = FDecalStatManager::GetInstance().GetAverageTimePerDrawMS();
 
         // 2. 출력할 문자열 버퍼를 만듭니다.
         wchar_t Buf[256];
-        swprintf_s(Buf, L"[Decal Stats]\nTotal: %u\nVisible: %u\nRendered: %u\n평균 소요 시간: %.3f ms\n전체 소요 시간: %.3f ms",
+        swprintf_s(Buf, L"[Decal Stats]\nTotal: %u\nVisible: %u\nAffectedMesh: %u\n전체 소요 시간: %.3f ms\n데칼 렌더 평균 소요 시간: %.3f ms\n데칼 메시 렌더 평균 소요 시간: %.3f ms",
             TotalCount,
-            VisibleCount,
-            RenderedCount,
-            AverageTime,
-            TotalTime);
+            VisibleDecalCount,
+            AffectedMeshCount,
+            TotalTime,
+            AverageTimePerDecal,
+            AverageTimePerDraw);
 
         // 3. 텍스트를 여러 줄 표시해야 하므로 패널 높이를 늘립니다.
-        const float decalPanelHeight = 130.0f;
+        const float decalPanelHeight = 170.0f;
         D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + decalPanelHeight);
 
         // 4. DrawTextBlock 함수를 호출하여 화면에 그립니다. 색상은 구분을 위해 주황색(Orange)으로 설정합니다.
