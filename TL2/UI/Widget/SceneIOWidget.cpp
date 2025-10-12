@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <exception>
 #include "../UIManager.h"
-#include "../../SceneLoader.h"
 #include "../../Object.h"
 #include "../../Level.h"
 #include "CameraActor.h"
