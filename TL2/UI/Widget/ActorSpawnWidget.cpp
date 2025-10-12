@@ -63,7 +63,7 @@ void UActorSpawnWidget::RenderWidget()
 	const float ButtonHeight = 25.0f;
 
 	// '+ 추가' 버튼
-	if (ImGui::Button("+ 추가", ImVec2(ButtonWidth, ButtonHeight)))
+	if (ImGui::Button("+ 액터", ImVec2(ButtonWidth, ButtonHeight)))
 	{
 		ImGui::OpenPopup("AddActorPopup");
 	}

@@ -62,20 +62,16 @@ namespace
 
 		NewComp->SetOwner(&Actor);
 
-		// 씬 컴포넌트라면 루트에 붙임
+		// 씬 컴포넌트라면 SelectedComponent에 붙임
 		if (USceneComponent* SceneComp = Cast<USceneComponent>(NewComp))
 		{
-			//SceneComp->SetWorldTransform(Actor.GetActorTransform()); // 초기 월드 트랜스폼을 부모와 동일하게
-
-			if (USceneComponent* Root = Actor.GetRootComponent())
+			if (SelectedComponent)
 			{
-				//const bool bUsesWorldAttachment =
-				//	SceneComp->IsA(UStaticMeshComponent::StaticClass()) ||
-				//	SceneComp->IsA(UBillboardComponent::StaticClass());   // ← BillBoard도 월드 기준
-
-				//const EAttachmentRule AttachRule =
-				//	bUsesWorldAttachment ? EAttachmentRule::KeepWorld : EAttachmentRule::KeepRelative;
-
+				SceneComp->SetupAttachment(SelectedComponent, EAttachmentRule::KeepRelative);
+			}
+			// SelectedComponent가 없으면 루트에 붙이
+			else if (USceneComponent* Root = Actor.GetRootComponent())
+			{
 				SceneComp->SetupAttachment(Root, EAttachmentRule::KeepRelative);
 			}
 
@@ -470,7 +466,7 @@ void UTargetActorTransformWidget::RenderComponentHierarchy()
 	// 컴포넌트 삭제 실행
 	if (ComponentPendingRemoval)
 	{
-		if (SelectedComponent == ComponentPendingRemoval) 
+		if (SelectedComponent == ComponentPendingRemoval)
 			SelectedComponent = nullptr;
 
 		if (ComponentPendingRemoval->GetAttachParent())
@@ -694,11 +690,6 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 		if (UStaticMesh* CurMesh = TargetSMC->GetStaticMesh())
 		{
 			CurrentPath = ToUtf8(CurMesh->GetAssetPathFileName());
-			ImGui::Text("Current: %s", CurrentPath.c_str());
-		}
-		else
-		{
-			ImGui::Text("Current: <None>");
 		}
 
 		auto& RM = UResourceManager::GetInstance();
@@ -720,12 +711,13 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 			for (const FString& n : DisplayNames)
 				Items.push_back(n.c_str());
 
-			static int SelectedMeshIdx = -1;
-			if (SelectedMeshIdx == -1 && !CurrentPath.empty())
+			// 매 프레임마다 현재 메시에 맞는 인덱스를 찾습니다.
+			int SelectedMeshIdx = -1;
+			if (!CurrentPath.empty())
 			{
 				for (int i = 0; i < static_cast<int>(Paths.size()); ++i)
 				{
-					if (Paths[i] == CurrentPath || DisplayNames[i] == GetBaseNameNoExt(CurrentPath))
+					if (Paths[i] == CurrentPath)
 					{
 						SelectedMeshIdx = i;
 						break;
@@ -734,8 +726,9 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 			}
 
 			ImGui::SetNextItemWidth(240);
-			ImGui::Combo("StaticMesh", &SelectedMeshIdx, Items.data(), static_cast<int>(Items.size()));
-			if (ImGui::Button("Apply Mesh"))
+
+			// [핵심 수정] ImGui::Combo가 true를 반환하면(선택이 바뀌면) 즉시 메시를 적용합니다.
+			if (ImGui::Combo("StaticMesh", &SelectedMeshIdx, Items.data(), static_cast<int>(Items.size())))
 			{
 				if (SelectedMeshIdx >= 0 && SelectedMeshIdx < static_cast<int>(Paths.size()))
 				{
@@ -746,42 +739,25 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 					UE_LOG("Applied StaticMesh: %s", LogPath.c_str());
 				}
 			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Select Current"))
-			{
-				SelectedMeshIdx = -1;
-				if (!CurrentPath.empty())
-				{
-					for (int i = 0; i < static_cast<int>(Paths.size()); ++i)
-					{
-						if (Paths[i] == CurrentPath || DisplayNames[i] == GetBaseNameNoExt(CurrentPath))
-						{
-							SelectedMeshIdx = i;
-							break;
-						}
-					}
-				}
-			}
 		}
 
 		ImGui::Separator();
 
-		// ---- 기존 Material UI 유지 ----
-		const TArray<FString> MaterialNames = UResourceManager::GetInstance().GetAllFilePaths<UMaterial>();
-		TArray<const char*> MaterialNamesCharP;
-		MaterialNamesCharP.reserve(MaterialNames.size());
-		for (const FString& n : MaterialNames)
-			MaterialNamesCharP.push_back(n.c_str());
-
+		// Material UI
 		if (UStaticMesh* CurMesh = TargetSMC->GetStaticMesh())
 		{
+			const TArray<FString> MaterialNames = UResourceManager::GetInstance().GetAllFilePaths<UMaterial>();
+			TArray<const char*> MaterialNamesCharP;
+			MaterialNamesCharP.reserve(MaterialNames.size());
+			for (const FString& n : MaterialNames)
+				MaterialNamesCharP.push_back(n.c_str());
+
 			const TArray<FGroupInfo>& GroupInfos = CurMesh->GetMeshGroupInfo();
 			const uint32 NumGroupInfos = static_cast<uint32>(GroupInfos.size());
 
 			for (uint32 i = 0; i < NumGroupInfos; ++i)
 			{
-				ImGui::PushID(i);
+				ImGui::PushID(static_cast<int>(i));
 				const char* Label = GroupInfos[i].InitialMaterialName.c_str();
 				int SelectedMaterialIdx = -1;
 
@@ -789,11 +765,13 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 				{
 					const FString& AssignedName = TargetSMC->GetMaterialSlots()[i].MaterialName.ToString();
 					for (int idx = 0; idx < static_cast<int>(MaterialNames.size()); ++idx)
+					{
 						if (MaterialNames[idx] == AssignedName)
 						{
 							SelectedMaterialIdx = idx;
 							break;
 						}
+					}
 				}
 
 				ImGui::SetNextItemWidth(240);
