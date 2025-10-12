@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
 #include "ImGui/imgui.h"
@@ -565,7 +565,6 @@ void UTargetActorTransformWidget::RenderWidget()
 				ActorPendingRemoval->Destroy();
 			}
 			OnSelectedActorCleared();
-			return; // 방금 제거된 액터에 대한 나머지 UI 갱신 건너뜀
 		}
 
 		ImGui::EndChild();
