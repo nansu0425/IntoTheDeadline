@@ -243,10 +243,6 @@ USceneComponent* UTargetActorTransformWidget::GetEditingComponent() const
 	if (!SelectedComponent || SelectedComponent == RootComponent)
 		return nullptr;
 
-	// 기본 보호 컴포넌트(텍스트, AABB, 초기 스태틱 메쉬 등)는 항상 액터 트랜스폼과 함께 움직인다.
-	if (SelectedComponent->IsNative())
-		return nullptr;
-
 	return SelectedComponent;
 }
 
