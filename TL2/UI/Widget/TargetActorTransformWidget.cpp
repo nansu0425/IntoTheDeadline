@@ -1,22 +1,27 @@
 ﻿#include "pch.h"
+#include <string>
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
 #include "ImGui/imgui.h"
+#include "Vector.h"
+#include "World.h"
+#include "ResourceManager.h"    
+#include "WorldPartitionManager.h"
+#include "ActorSpawnWidget.h"
+
 #include "Actor.h"
 #include "GridActor.h"
-#include "World.h"
-#include "Vector.h"
 #include "GizmoActor.h"
-#include <string>
 #include "StaticMeshActor.h"    
+#include "FakeSpotLightActor.h"    
+
 #include "StaticMeshComponent.h"
-#include "ResourceManager.h"    
 #include "TextRenderComponent.h"
 #include "CameraComponent.h"
 #include "BillboardComponent.h"
 #include "DecalComponent.h"
-#include "ActorSpawnWidget.h"
-#include "WorldPartitionManager.h"
+#include "PerspectiveDecalComponent.h"
+
 using namespace std;
 
 namespace
@@ -90,7 +95,7 @@ namespace
 		}
 		return true;
 	}
-	
+
 	void MarkComponentSubtreeVisited(USceneComponent* Component, TSet<USceneComponent*>& Visited)
 	{
 		if (!Component || Visited.count(Component))
@@ -241,10 +246,6 @@ USceneComponent* UTargetActorTransformWidget::GetEditingComponent() const
 
 	USceneComponent* RootComponent = SelectedActor->GetRootComponent();
 	if (!SelectedComponent || SelectedComponent == RootComponent)
-		return nullptr;
-
-	// 기본 보호 컴포넌트(텍스트, AABB, 초기 스태틱 메쉬 등)는 항상 액터 트랜스폼과 함께 움직인다.
-	if (SelectedComponent->IsNative())
 		return nullptr;
 
 	return SelectedComponent;
@@ -643,11 +644,21 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 	ImGui::Separator();
 
 	USceneComponent* TargetComponentForDetails = SelectedComponent;
+
+	// 액터가 선택되 경우 액터의 중요 컴포넌트를 출력
 	if (!TargetComponentForDetails && SelectedActor)
 	{
-		if (auto* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
+		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
 		{
 			TargetComponentForDetails = StaticMeshActor->GetStaticMeshComponent();
+		}
+		else if (AFakeSpotLightActor* FakeSpotLightActor = Cast<AFakeSpotLightActor>(SelectedActor))
+		{
+			TargetComponentForDetails = FakeSpotLightActor->GetDecalComponent();
+		}
+		else
+		{
+			TargetComponentForDetails = SelectedActor->GetRootComponent();
 		}
 	}
 
@@ -849,6 +860,25 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 		float DecalBlendFactor = DecalCmp->GetOpacity();
 		ImGui::SliderFloat("Blend Factor", &DecalBlendFactor, 0.0f, 1.0f);
 		DecalCmp->SetOpacity(DecalBlendFactor);
+	}
+
+	// PerspectiveDecalComponent UI
+	if (UPerspectiveDecalComponent* PerDecalComp = Cast<UPerspectiveDecalComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		// UI 헤더 텍스트를 "원뿔 데칼 속성"으로 변경
+		ImGui::Text("원뿔 데칼 속성 (Perspective Decal)");
+
+		// 1. Getter를 호출하여 현재 FovY 값을 가져옵니다. 이 값이 원뿔의 꼭지각(apex angle)입니다.
+		float coneAngle = PerDecalComp->GetFovY();
+
+		// 2. ImGui 슬라이더의 라벨을 "원뿔 각도"로 변경하고, 로컬 변수 coneAngle의 주소를 전달합니다.
+		//    사용자가 더 다양한 형태를 만들 수 있도록 범위를 1.0 ~ 80.0으로 확장합니다.
+		if (ImGui::SliderFloat("Cone Angle", &coneAngle, 1.0f, 80.0f, "%.1f deg"))
+		{
+			// 3. 값이 변경되면 Setter를 호출하여 컴포넌트의 실제 각도를 업데이트합니다.
+			PerDecalComp->SetFovY(coneAngle);
+		}
 	}
 }
 

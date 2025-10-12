@@ -4,9 +4,11 @@
 #include "ImGui/imgui.h"
 #include "World.h"
 #include "StaticMeshActor.h"
+#include "FakeSpotLightActor.h"
 #include "StaticMeshComponent.h"
 #include "CameraActor.h"
 #include "DecalActor.h"
+#include "SelectionManager.h"
 #include <ctime>
 #include <cstdlib>
 
@@ -29,6 +31,7 @@ namespace
 				Result.push_back({ "Empty Actor", AActor::StaticClass(), "컴포넌트가 없는 기본 액터입니다." });
 				Result.push_back({ "Static Mesh Actor", AStaticMeshActor::StaticClass(), "스태틱 메시를 표시하는 액터입니다. (기본 Cube 메시로 생성)" });
 				Result.push_back({ "Decal Actor", ADecalActor::StaticClass(), "데칼 액터입니다." });
+				Result.push_back({ "Fake Spot Light Actor", AFakeSpotLightActor::StaticClass(), "가짜 Spot Light 액터입니다." });
 				return Result;
 			}();
 		return Options;
@@ -122,19 +125,21 @@ bool UActorSpawnWidget::TrySpawnActor(UClass* ActorClass)
 	{
 		// 액터에 고유 이름 부여
 		const FSpawnableActorDescriptor* Desc = nullptr;
-		for (const auto& d : GetSpawnableActorDescriptors())
+		for (const auto& ActorDesc : GetSpawnableActorDescriptors())
 		{
-			if (d.Class == ActorClass)
+			if (ActorDesc.Class == ActorClass)
 			{
-				Desc = &d;
+				Desc = &ActorDesc;
 				break;
 			}
 		}
+
 		FString ActorName = World->GenerateUniqueActorName(Desc ? Desc->Label : "Actor");
 		NewActor->SetName(ActorName);
 
 		// 월드 파티션 시스템에 등록 (중요)
-		World->OnActorSpawned(NewActor);
+		World->OnActorSpawned(NewActor); 
+		HandleActorSelection(NewActor);
 		UE_LOG("ActorSpawn: Successfully spawned %s.", ActorName.c_str());
 		return true;
 	}
@@ -143,6 +148,35 @@ bool UActorSpawnWidget::TrySpawnActor(UClass* ActorClass)
 		UE_LOG("ActorSpawn: Failed to spawn actor.");
 		return false;
 	}
+}
+
+// 액터 선택 처리
+void UActorSpawnWidget::HandleActorSelection(AActor* Actor)
+{
+	if (!Actor)
+		return;
+
+	UWorld* World = UIManager ? UIManager->GetWorld() : nullptr;
+
+	if (World)
+	{
+		// Clear previous selection and select this actor
+		World->GetSelectionManager()->ClearSelection();
+		World->GetSelectionManager()->SelectActor(Actor);
+	}
+
+	// Sync with UIManager for gizmo positioning
+	if (UIManager)
+	{
+		UIManager->SetPickedActor(Actor);
+
+		if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
+		{
+			Gizmo->SetActorLocation(Actor->GetActorLocation());
+		}
+	}
+
+	UE_LOG("SceneManager: Selected actor %s", Actor->GetName().ToString().c_str());
 }
 
 FVector UActorSpawnWidget::GenerateRandomLocation() const
