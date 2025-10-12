@@ -30,7 +30,7 @@ namespace
 				Result.push_back({ "Empty Actor", AActor::StaticClass(), "컴포넌트가 없는 기본 액터입니다." });
 				Result.push_back({ "Static Mesh Actor", AStaticMeshActor::StaticClass(), "스태틱 메시를 표시하는 액터입니다. (기본 Cube 메시로 생성)" });
 				Result.push_back({ "Decal Actor", ADecalActor::StaticClass(), "데칼 액터입니다." });
-				Result.push_back({ "Fake Spot Light Actor", AFakeSpotLightActorActor::StaticClass(), "가짜 Spot Light 액터입니다." });
+				Result.push_back({ "Fake Spot Light Actor", AFakeSpotLightActor::StaticClass(), "가짜 Spot Light 액터입니다." });
 				return Result;
 			}();
 		return Options;

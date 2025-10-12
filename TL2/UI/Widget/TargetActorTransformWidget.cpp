@@ -1,22 +1,27 @@
 ﻿#include "pch.h"
+#include <string>
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
 #include "ImGui/imgui.h"
+#include "Vector.h"
+#include "World.h"
+#include "ResourceManager.h"    
+#include "WorldPartitionManager.h"
+#include "ActorSpawnWidget.h"
+
 #include "Actor.h"
 #include "GridActor.h"
-#include "World.h"
-#include "Vector.h"
 #include "GizmoActor.h"
-#include <string>
 #include "StaticMeshActor.h"    
+#include "FakeSpotLightActor.h"    
+
 #include "StaticMeshComponent.h"
-#include "ResourceManager.h"    
 #include "TextRenderComponent.h"
 #include "CameraComponent.h"
 #include "BillboardComponent.h"
 #include "DecalComponent.h"
-#include "ActorSpawnWidget.h"
-#include "WorldPartitionManager.h"
+#include "PerspectiveDecalComponent.h"
+
 using namespace std;
 
 namespace
@@ -90,7 +95,7 @@ namespace
 		}
 		return true;
 	}
-	
+
 	void MarkComponentSubtreeVisited(USceneComponent* Component, TSet<USceneComponent*>& Visited)
 	{
 		if (!Component || Visited.count(Component))
@@ -639,11 +644,21 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 	ImGui::Separator();
 
 	USceneComponent* TargetComponentForDetails = SelectedComponent;
+
+	// 액터가 선택되 경우 액터의 중요 컴포넌트를 출력
 	if (!TargetComponentForDetails && SelectedActor)
 	{
-		if (auto* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
+		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
 		{
 			TargetComponentForDetails = StaticMeshActor->GetStaticMeshComponent();
+		}
+		else if (AFakeSpotLightActor* FakeSpotLightActor = Cast<AFakeSpotLightActor>(SelectedActor))
+		{
+			TargetComponentForDetails = FakeSpotLightActor->GetDecalComponent();
+		}
+		else
+		{
+			TargetComponentForDetails = StaticMeshActor->GetRootComponent();
 		}
 	}
 
@@ -845,6 +860,23 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 		float DecalBlendFactor = DecalCmp->GetOpacity();
 		ImGui::SliderFloat("Blend Factor", &DecalBlendFactor, 0.0f, 1.0f);
 		DecalCmp->SetOpacity(DecalBlendFactor);
+	}
+
+	// PerspectiveDecalComponent UI
+	if (UPerspectiveDecalComponent* PerDecalComp = Cast<UPerspectiveDecalComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("Perspective Decal Properties");
+
+		// 1. Getter를 호출하여 현재 FovY 값을 로컬 변수로 가져옵니다.
+		float currentFov = PerDecalComp->GetFovY();
+
+		// 2. ImGui는 이 로컬 변수의 주소를 받아 값을 수정합니다.
+		if (ImGui::SliderFloat("Field of View (Y)", &currentFov, 0.1f, 90.0f, "%.1f deg"))
+		{
+			// 3. SliderFloat가 true를 반환하면 (값이 변경되면) Setter를 호출하여 실제 값을 업데이트합니다.
+			PerDecalComp->SetFovY(currentFov);
+		}
 	}
 }
 
