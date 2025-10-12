@@ -13,6 +13,7 @@
 #include "../../Level.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "JsonSerializer.h"
 
 USceneIOWidget::USceneIOWidget()
 	: UWidget("Scene IO Widget")
@@ -226,6 +227,10 @@ void USceneIOWidget::SaveLevel(const FString& InFilePath)
 			}
 
 			ULevelService::SaveLevel(CurrentWorld->GetLevel(), CurrentWorld->GetCameraActor(), SceneName);
+			JSON LevelJson;
+			CurrentWorld->GetLevel()->Serialize(false, LevelJson);
+			bool bSuccess = FJsonSerializer::SaveJsonToFile(LevelJson, InFilePath);
+
 			UE_LOG("SceneIO: Scene saved: %s", SceneName.c_str());
 			SetStatusMessage("Scene saved: Scene/" + SceneName + ".Scene");
 		}
