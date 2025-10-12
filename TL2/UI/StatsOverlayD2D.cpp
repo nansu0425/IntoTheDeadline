@@ -229,7 +229,7 @@ void UStatsOverlayD2D::Draw()
 	{
 		// 1. FDecalStatManager로부터 통계 데이터를 가져옵니다.
 		uint32_t TotalCount = FDecalStatManager::GetInstance().GetTotalDecalCount();
-		uint32_t VisibleDecalCount = FDecalStatManager::GetInstance().GetVisibleDecalCount();
+		//uint32_t VisibleDecalCount = FDecalStatManager::GetInstance().GetVisibleDecalCount();
 		uint32_t AffectedMeshCount = FDecalStatManager::GetInstance().GetAffectedMeshCount();
 		double TotalTime = FDecalStatManager::GetInstance().GetDecalPassTimeMS();
 		double AverageTimePerDecal = FDecalStatManager::GetInstance().GetAverageTimePerDecalMS();
@@ -237,16 +237,15 @@ void UStatsOverlayD2D::Draw()
 
 		// 2. 출력할 문자열 버퍼를 만듭니다.
 		wchar_t Buf[256];
-		swprintf_s(Buf, L"[Decal Stats]\nTotal: %u\nVisible: %u\nAffectedMesh: %u\n전체 소요 시간: %.3f ms\nAvg/Decal: %.3f ms\nAvg/Mesh: %.3f ms",
+		swprintf_s(Buf, L"[Decal Stats]\nTotal: %u\nAffectedMesh: %u\n전체 소요 시간: %.3f ms\nAvg/Decal: %.3f ms\nAvg/Mesh: %.3f ms",
 			TotalCount,
-			VisibleDecalCount,
 			AffectedMeshCount,
 			TotalTime,
 			AverageTimePerDecal,
 			AverageTimePerDraw);
 
 		// 3. 텍스트를 여러 줄 표시해야 하므로 패널 높이를 늘립니다.
-		const float decalPanelHeight = 170.0f;
+		const float decalPanelHeight = 140.0f;
 		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + decalPanelHeight);
 
 		// 4. DrawTextBlock 함수를 호출하여 화면에 그립니다. 색상은 구분을 위해 주황색(Orange)으로 설정합니다.
