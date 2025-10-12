@@ -128,6 +128,7 @@ namespace
 		}
 		return true;
 	}
+	
 	void MarkComponentSubtreeVisited(USceneComponent* Component, TSet<USceneComponent*>& Visited)
 	{
 		if (!Component || Visited.count(Component))
