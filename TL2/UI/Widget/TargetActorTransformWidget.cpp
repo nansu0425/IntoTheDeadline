@@ -579,9 +579,9 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 				DeltaEuler.Y = Wrap(DeltaEuler.Y);
 				DeltaEuler.Z = Wrap(DeltaEuler.Z);
 
-				const FQuat Qx = FQuat::FromAxisAngle(FVector(1, 0, 0), DegreeToRadian(DeltaEuler.X));
-				const FQuat Qy = FQuat::FromAxisAngle(FVector(0, 1, 0), DegreeToRadian(DeltaEuler.Y));
-				const FQuat Qz = FQuat::FromAxisAngle(FVector(0, 0, 1), DegreeToRadian(DeltaEuler.Z));
+				const FQuat Qx = FQuat::FromAxisAngle(FVector(1, 0, 0), DegreesToRadians(DeltaEuler.X));
+				const FQuat Qy = FQuat::FromAxisAngle(FVector(0, 1, 0), DegreesToRadians(DeltaEuler.Y));
+				const FQuat Qz = FQuat::FromAxisAngle(FVector(0, 0, 1), DegreesToRadians(DeltaEuler.Z));
 				const FQuat DeltaQuat = (Qz * Qy * Qx).GetNormalized();
 
 				if (EditingComponent)
@@ -600,7 +600,7 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 			}
 			else
 			{
-				const FQuat NewQ = QuatFromEulerZYX_Deg(EditRotation).GetNormalized();
+				const FQuat NewQ = FQuat::QuatFromEulerZYX_Deg(EditRotation).GetNormalized();
 				if (EditingComponent)
 				{
 					EditingComponent->SetRelativeRotation(NewQ);
@@ -610,7 +610,7 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 					SelectedActor->SetActorRotation(NewQ);
 				}
 
-				EditRotation = EulerZYX_DegFromQuat(NewQ);
+				EditRotation = NewQ.ToEulerZYXDeg();
 				PrevEditRotationUI = EditRotation;
 				bRotationChanged = false;
 			}
@@ -621,12 +621,12 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 		{
 			if (EditingComponent)
 			{
-				EditRotation = EulerZYX_DegFromQuat(EditingComponent->GetRelativeRotation());
+				EditRotation = EditingComponent->GetRelativeRotation().ToEulerZYXDeg();
 				PrevEditRotationUI = EditRotation;
 			}
 			else if (SelectedActor)
 			{
-				EditRotation = EulerZYX_DegFromQuat(SelectedActor->GetActorRotation());
+				EditRotation = SelectedActor->GetActorRotation().ToEulerZYXDeg();
 				PrevEditRotationUI = EditRotation;
 			}
 			bRotationEditing = false;
@@ -921,13 +921,13 @@ void UTargetActorTransformWidget::UpdateTransformFromActor()
 	if (USceneComponent* EditingComponent = GetEditingComponent())
 	{
 		EditLocation = EditingComponent->GetRelativeLocation();
-		EditRotation = EulerZYX_DegFromQuat(EditingComponent->GetRelativeRotation());
+		EditRotation = EditingComponent->GetRelativeRotation().ToEulerZYXDeg();
 		EditScale = EditingComponent->GetRelativeScale();
 	}
 	else
 	{
 		EditLocation = SelectedActor->GetActorLocation();
-		EditRotation = EulerZYX_DegFromQuat(SelectedActor->GetActorRotation());
+		EditRotation = SelectedActor->GetActorRotation().ToEulerZYXDeg();
 		EditScale = SelectedActor->GetActorScale();
 	}
 

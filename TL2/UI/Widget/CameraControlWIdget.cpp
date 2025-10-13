@@ -129,7 +129,7 @@ void UCameraControlWidget::RenderWidget()
 	}
 
 	// 카메라 회전 제어 (Euler angles)
-	FVector Rotation = Camera->GetActorRotation().ToEuler();
+	FVector Rotation = Camera->GetActorRotation().ToEulerZYXDeg();
 	bool RotationChanged = false;
 	RotationChanged |= ImGui::DragFloat3("Camera Rotation", &Rotation.X, 0.1f);
 

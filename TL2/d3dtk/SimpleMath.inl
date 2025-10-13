@@ -1974,7 +1974,7 @@ inline float Matrix::Determinant() const noexcept
     return XMVectorGetX(XMMatrixDeterminant(M));
 }
 
-inline Vector3 Matrix::ToEuler() const noexcept
+inline Vector3 Matrix::ToEulerZYXDeg() const noexcept
 {
     const float cy = sqrtf(_33 * _33 + _31 * _31);
     const float cx = atan2f(-_32, cy);
@@ -2720,7 +2720,7 @@ inline void Quaternion::RotateTowards(const Quaternion& target, float maxAngle) 
     RotateTowards(target, maxAngle, *this);
 }
 
-inline Vector3 Quaternion::ToEuler() const noexcept
+inline Vector3 Quaternion::ToEulerZYXDeg() const noexcept
 {
     const float xx = x * x;
     const float yy = y * y;

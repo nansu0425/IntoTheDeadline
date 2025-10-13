@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------------------------
+﻿//-------------------------------------------------------------------------------------
 // SimpleMath.h -- Simplified C++ Math wrapper for DirectXMath
 //
 // Copyright (c) Microsoft Corporation.
@@ -584,7 +584,7 @@ namespace DirectX
             float Determinant() const noexcept;
 
             // Computes rotation about y-axis (y), then x-axis (x), then z-axis (z)
-            Vector3 ToEuler() const noexcept;
+            Vector3 ToEulerZYXDeg() const noexcept;
 
             // Static functions
             static Matrix CreateBillboard(
@@ -758,7 +758,7 @@ namespace DirectX
             void __cdecl RotateTowards(const Quaternion& target, float maxAngle, Quaternion& result) const noexcept;
 
             // Computes rotation about y-axis (y), then x-axis (x), then z-axis (z)
-            Vector3 ToEuler() const noexcept;
+            Vector3 ToEulerZYXDeg() const noexcept;
 
             // Static functions
             static Quaternion CreateFromAxisAngle(const Vector3& axis, float angle) noexcept;
