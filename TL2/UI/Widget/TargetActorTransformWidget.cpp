@@ -579,9 +579,9 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 				DeltaEuler.Y = Wrap(DeltaEuler.Y);
 				DeltaEuler.Z = Wrap(DeltaEuler.Z);
 
-				const FQuat Qx = MakeQuatFromAxisAngle(FVector(1, 0, 0), DegreeToRadian(DeltaEuler.X));
-				const FQuat Qy = MakeQuatFromAxisAngle(FVector(0, 1, 0), DegreeToRadian(DeltaEuler.Y));
-				const FQuat Qz = MakeQuatFromAxisAngle(FVector(0, 0, 1), DegreeToRadian(DeltaEuler.Z));
+				const FQuat Qx = FQuat::FromAxisAngle(FVector(1, 0, 0), DegreeToRadian(DeltaEuler.X));
+				const FQuat Qy = FQuat::FromAxisAngle(FVector(0, 1, 0), DegreeToRadian(DeltaEuler.Y));
+				const FQuat Qz = FQuat::FromAxisAngle(FVector(0, 0, 1), DegreeToRadian(DeltaEuler.Z));
 				const FQuat DeltaQuat = (Qz * Qy * Qx).GetNormalized();
 
 				if (EditingComponent)
