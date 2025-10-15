@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <string>
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
@@ -950,6 +950,37 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 			// 3. 값이 변경되면 Setter를 호출하여 컴포넌트의 실제 각도를 업데이트합니다.
 			PerDecalComp->SetFovY(coneAngle);
 		}
+	}
+
+	if(UFireBallComponent* FireBallComp = Cast<UFireBallComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("Fire Ball Component");
+
+		float Intensity = FireBallComp->GetIntensity();
+		if (ImGui::DragFloat("Intensity", &Intensity, 0.01f, 0.0f, 1.0f))
+		{
+			FireBallComp->SetIntensity(Intensity);
+		}
+
+		float Radius = FireBallComp->GetRadius();
+		if (ImGui::DragFloat("Radius", &Radius, 1.0f, 10.0f, 100.0f))
+		{
+			FireBallComp->SetRadius(Radius);
+		}
+
+		float FallOff = FireBallComp->GetRadiusFallOff();
+		if (ImGui::DragFloat("Fall Off", &FallOff, 0.1f, 0.0f, 10.0f))
+		{
+			FireBallComp->SetRadiusFallOff(FallOff);
+		}
+
+		FLinearColor Color = FireBallComp->GetColor();
+		if (ImGui::DragFloat3("Color", &Color.R, 0.01f, 0.0f, 1.0f))
+		{
+			FireBallComp->SetColor(Color);
+		}
+
 	}
 }
 
