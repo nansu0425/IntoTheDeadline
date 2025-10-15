@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <string>
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
@@ -21,6 +21,7 @@
 #include "BillboardComponent.h"
 #include "DecalComponent.h"
 #include "PerspectiveDecalComponent.h"
+#include "FireBallComponent.h"
 #include "HeightFogComponent.h"
 #include "Color.h"
 
@@ -44,6 +45,7 @@ namespace
 				Result.push_back({ "Billboard Component", UBillboardComponent::StaticClass(), "빌보드 텍스쳐 표시" });
 				Result.push_back({ "Decal Component", UDecalComponent::StaticClass(), "데칼" });
 				Result.push_back({ "Fog Component", UHeightFogComponent::StaticClass(), "Fog" });
+				Result.push_back({ "FireBall Component", UFireBallComponent::StaticClass(), "파이어볼" });
 				return Result;
 			}();
 		return Options;
