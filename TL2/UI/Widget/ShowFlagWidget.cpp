@@ -115,6 +115,8 @@ void UShowFlagWidget::SyncWithWorld(UWorld* World)
     bLighting = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
     bOctree = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
     bBVH = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
+    bFog = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Fog);
+    bFXAA = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_FXAA);
 }
 
 void UShowFlagWidget::RenderShowFlagCheckbox(const char* Label, EEngineShowFlags Flag, UWorld* World)
@@ -277,6 +279,8 @@ void UShowFlagWidget::RenderRenderingSection(UWorld* World)
     {
         ImGui::PopStyleColor();
         
+        RenderShowFlagCheckbox("Fog", EEngineShowFlags::SF_Fog, World);
+        RenderShowFlagCheckbox("FXAA", EEngineShowFlags::SF_FXAA, World);
         RenderShowFlagCheckbox("Decal", EEngineShowFlags::SF_Decals, World);
         RenderShowFlagCheckbox("Lighting", EEngineShowFlags::SF_Lighting, World);
         
