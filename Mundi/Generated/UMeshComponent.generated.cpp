@@ -16,7 +16,7 @@ namespace {
         {
             ObjectFactory::RegisterClassType(
                 UMeshComponent::StaticClass(),
-                nullptr
+                []() -> UObject* { return new UMeshComponent(); }
             );
         }
     };

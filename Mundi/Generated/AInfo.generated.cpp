@@ -16,7 +16,7 @@ namespace {
         {
             ObjectFactory::RegisterClassType(
                 AInfo::StaticClass(),
-                nullptr
+                []() -> UObject* { return new AInfo(); }
             );
         }
     };
