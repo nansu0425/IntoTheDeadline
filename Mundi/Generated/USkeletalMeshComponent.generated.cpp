@@ -6,6 +6,7 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "Source/Runtime/Engine/Animation/AnimStateMachineInstance.h"
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(USkeletalMeshComponent) expansion
@@ -46,27 +47,7 @@ LUA_BIND_BEGIN(USkeletalMeshComponent)
 {
     AddAlias<USkeletalMeshComponent>(
         T, "UseStateMachine", &USkeletalMeshComponent::UseStateMachine);
-    AddAlias<USkeletalMeshComponent>(
-        T, "AnimSM_Clear", &USkeletalMeshComponent::AnimSM_Clear);
-    AddMethodR<bool, USkeletalMeshComponent>(
-        T, "AnimSM_IsActive", &USkeletalMeshComponent::AnimSM_IsActive);
-    AddMethodR<int32, USkeletalMeshComponent, const FString&, const FString&, float, bool>(
-        T, "AnimSM_AddState", &USkeletalMeshComponent::AnimSM_AddState);
-    AddAlias<USkeletalMeshComponent, const FString&, const FString&, float>(
-        T, "AnimSM_AddTransitionByName", &USkeletalMeshComponent::AnimSM_AddTransitionByName);
-    AddAlias<USkeletalMeshComponent, const FString&, float>(
-        T, "AnimSM_SetState", &USkeletalMeshComponent::AnimSM_SetState);
-    AddMethodR<FString, USkeletalMeshComponent>(
-        T, "AnimSM_GetCurrentStateName", &USkeletalMeshComponent::AnimSM_GetCurrentStateName);
-    AddMethodR<int32, USkeletalMeshComponent, const FString&>(
-        T, "AnimSM_GetStateIndex", &USkeletalMeshComponent::AnimSM_GetStateIndex);
-    AddAlias<USkeletalMeshComponent, const FString&, float>(
-        T, "AnimSM_SetStatePlayRate", &USkeletalMeshComponent::AnimSM_SetStatePlayRate);
-    AddAlias<USkeletalMeshComponent, const FString&, bool>(
-        T, "AnimSM_SetStateLooping", &USkeletalMeshComponent::AnimSM_SetStateLooping);
-    AddMethodR<float, USkeletalMeshComponent, const FString&>(
-        T, "AnimSM_GetStateTime", &USkeletalMeshComponent::AnimSM_GetStateTime);
-    AddAlias<USkeletalMeshComponent, const FString&, float>(
-        T, "AnimSM_SetStateTime", &USkeletalMeshComponent::AnimSM_SetStateTime);
+    AddMethodR<UAnimStateMachineInstance*, USkeletalMeshComponent>(
+        T, "GetOrCreateStateMachine", &USkeletalMeshComponent::GetOrCreateStateMachine);
 }
 LUA_BIND_END()

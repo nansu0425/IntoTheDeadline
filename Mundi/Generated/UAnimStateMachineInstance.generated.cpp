@@ -44,7 +44,27 @@ extern "C" void LuaBind_Anchor_UAnimStateMachineInstance() {}
 
 LUA_BIND_BEGIN(UAnimStateMachineInstance)
 {
-    // No functions to bind
+    AddAlias<UAnimStateMachineInstance>(
+        T, "Clear", &UAnimStateMachineInstance::Clear);
+    AddMethodR<bool, UAnimStateMachineInstance>(
+        T, "IsActive", &UAnimStateMachineInstance::Lua_IsActive);
+    AddMethodR<int32, UAnimStateMachineInstance, const FString&, const FString&, float, bool>(
+        T, "AddState", &UAnimStateMachineInstance::Lua_AddState);
+    AddAlias<UAnimStateMachineInstance, const FString&, const FString&, float>(
+        T, "AddTransitionByName", &UAnimStateMachineInstance::Lua_AddTransitionByName);
+    AddAlias<UAnimStateMachineInstance, const FString&, float>(
+        T, "SetState", &UAnimStateMachineInstance::Lua_SetState);
+    AddMethodR<FString, UAnimStateMachineInstance>(
+        T, "GetCurrentStateName", &UAnimStateMachineInstance::Lua_GetCurrentStateName);
+    AddMethodR<int32, UAnimStateMachineInstance, const FString&>(
+        T, "GetStateIndex", &UAnimStateMachineInstance::Lua_GetStateIndex);
+    AddAlias<UAnimStateMachineInstance, const FString&, float>(
+        T, "SetStatePlayRate", &UAnimStateMachineInstance::Lua_SetStatePlayRate);
+    AddAlias<UAnimStateMachineInstance, const FString&, bool>(
+        T, "SetStateLooping", &UAnimStateMachineInstance::Lua_SetStateLooping);
+    AddMethodR<float, UAnimStateMachineInstance, const FString&>(
+        T, "GetStateTime", &UAnimStateMachineInstance::Lua_GetStateTime);
+    AddAlias<UAnimStateMachineInstance, const FString&, float>(
+        T, "SetStateTime", &UAnimStateMachineInstance::Lua_SetStateTime);
 }
 LUA_BIND_END()
-
