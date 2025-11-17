@@ -6,9 +6,9 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "CapsuleComponent.h"
 #include "CharacterMovementComponent.h"
-#include "SceneComponent.h"
-#include "StaticMeshComponent.h"
+#include "SkeletalMeshComponent.h"
 #include "Vector.h"
 
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
@@ -49,10 +49,10 @@ LUA_BIND_BEGIN(ACharacter)
 {
     AddMethodR<UCharacterMovementComponent*, ACharacter>(
         T, "GetCharacterMovement", &ACharacter::GetCharacterMovement);
-    AddMethodR<USceneComponent*, ACharacter>(
+    AddMethodR<UCapsuleComponent*, ACharacter>(
+        T, "GetCapsuleComponent", &ACharacter::GetCapsuleComponent);
+    AddMethodR<USkeletalMeshComponent*, ACharacter>(
         T, "GetMesh", &ACharacter::GetMesh);
-    AddMethodR<UStaticMeshComponent*, ACharacter>(
-        T, "GetStaticMesh", &ACharacter::GetStaticMesh);
     AddAlias<ACharacter>(
         T, "Jump", &ACharacter::Jump);
     AddAlias<ACharacter>(
