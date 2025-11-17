@@ -35,9 +35,9 @@ const bool AActor::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(AActor)
     ADD_PROPERTY(FName, ObjectName, "[액터]", true, "액터의 이름입니다")
-    ADD_PROPERTY(FString, Tag, "[액터]", true, "액터의 태그를 지정합니다.")
     ADD_PROPERTY(bool, bActorHiddenInGame, "[액터]", true)
     ADD_PROPERTY(bool, bActorIsActive, "[액터]", true)
+    ADD_PROPERTY(FString, Tag, "[액터]", true, "액터의 태그를 지정합니다.")
 END_PROPERTIES()
 
 // ===== Lua Binding =====
