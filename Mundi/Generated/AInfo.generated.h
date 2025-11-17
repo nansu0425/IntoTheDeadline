@@ -5,14 +5,10 @@
 
 // Macro expansion for GENERATED_REFLECTION_BODY()
 // This file must be included BEFORE the class definition
-
-// Undefine previous class's macro if exists
 #ifdef CURRENT_CLASS_GENERATED_BODY
 #undef CURRENT_CLASS_GENERATED_BODY
 #endif
-
-// Define class-specific body macro
-#define A_INFO_BODY \
+#define CURRENT_CLASS_GENERATED_BODY \
 public: \
     using Super = AActor; \
     using ThisClass_t = AInfo; \
@@ -26,15 +22,10 @@ public: \
     AInfo(const AInfo&) = default; \
     AInfo* Duplicate() const override \
     { \
-        AInfo* NewObject = ObjectFactory::DuplicateObject<AInfo>(this); \
-        NewObject->DuplicateSubObjects(); \
-        NewObject->PostDuplicate(); \
-        return NewObject; \
+        assert(false && "Cannot duplicate abstract class AInfo"); \
+        return nullptr; \
     } \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \
 public:
-
-// Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY A_INFO_BODY
