@@ -21,7 +21,48 @@ WEEK07 시작 시점의 코드베이스는 메시를 텍스처·버텍스 색으
 
 기본 단위 함수(`CalculateAmbientLight` / `CalculateDiffuse` / `CalculateSpecular`) 위에 라이트 종류별 통합 함수(`CalculateDirectionalLight` / `CalculateSpotLight` / `CalculatePointLight`)를 쌓은 구조입니다.
 
-[`UberLit.hlsl`](../Mundi/Shaders/Materials/UberLit.hlsl) 은 이 매크로들로 조명 모델 3종을 한 파일에서 컴파일하는 uber 셰이더입니다 — Gouraud 는 버텍스 셰이더에서, Lambert/Phong 은 픽셀 셰이더에서 조명을 계산합니다. 기존 StaticMeshShader 로직을 여기로 이관했습니다 (커밋 `46bc65fc`).
+두 매크로 훅이 실제로 걸리는 지점 ([`LightingCommon.hlsl:94`](../Mundi/Shaders/Common/LightingCommon.hlsl#L94-L119)):
+
+```hlsl
+#ifndef SPECULAR_COLOR
+    #define SPECULAR_COLOR float3(1.0f, 1.0f, 1.0f)
+#endif
+
+float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
+{
+    float3 specularColor = SPECULAR_COLOR;
+
+#ifdef USE_BLINN_PHONG
+    // Blinn-Phong 방식: Half-vector 기반 (더 빠르고 부드러운 하이라이트)
+    float3 halfVec = normalize(lightDir + viewDir);
+    float NdotH = max(dot(normal, halfVec), 0.0f);
+    float specular = pow(NdotH, specularPower);
+    return lightColor.rgb * specularColor * specular;
+#else
+    // 전통적인 Phong 방식: Reflection vector 기반 (더 날카로운 하이라이트)
+    float3 reflectDir = reflect(-lightDir, normal);
+    float RdotV = max(dot(reflectDir, viewDir), 0.0f);
+    float specular = pow(RdotV, specularPower);
+    return lightColor.rgb * specularColor * specular;
+#endif
+}
+```
+
+[`UberLit.hlsl`](../Mundi/Shaders/Materials/UberLit.hlsl) 은 이 매크로들로 조명 모델 3종을 한 파일에서 컴파일하는 uber 셰이더입니다 — Gouraud 는 버텍스 셰이더에서, Lambert/Phong 은 픽셀 셰이더에서 조명을 계산합니다. 기존 StaticMeshShader 로직을 여기로 이관했습니다 (커밋 `46bc65fc`). 소비하는 쪽은 include 전에 매크로를 정의해 동작을 주입합니다 ([`UberLit.hlsl:84`](../Mundi/Shaders/Materials/UberLit.hlsl#L84-L106)):
+
+```hlsl
+// --- Material.SpecularColor 지원 매크로 ---
+// LightingCommon.hlsl의 CalculateSpecular에서 Material.SpecularColor를 사용하도록 설정
+// 금속 재질의 컬러 Specular 지원
+#define SPECULAR_COLOR (bHasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f))
+
+// ... (텍스처·샘플러 선언 생략)
+
+// --- 공통 조명 시스템 include ---
+#include "../Common/LightStructures.hlsl"
+#include "../Common/LightingBuffers.hlsl"
+#include "../Common/LightingCommon.hlsl"
+```
 
 ## 설계 2 — Unreal Engine 방식 감쇠 2모드
 
@@ -30,9 +71,61 @@ Point/Spot 라이트가 `bUseInverseSquareFalloff` 플래그로 감쇠 모델을
 - **Inverse Square Falloff** — 물리 기반 역제곱 감쇠에 `(1-(d/r)⁴)²` 윈도우 함수를 곱해 감쇠 반경 경계에서 부드럽게 0 에 도달
 - **Exponent Falloff** — `(1-(d/r)²)^exponent`. 지수로 감쇠 곡선을 아티스트가 제어
 
-Spot 원뿔 감쇠는 코사인 공간이 아니라 **각도 공간에서 보간**합니다 — `acos` 로 각도를 복원한 뒤 inner/outer cone 각도 사이를 `smoothstep` 으로 보간합니다. 코사인은 각도에 비선형이라 코사인 공간 보간은 감쇠가 한쪽으로 쏠리는데, 각도 공간에서는 원뿔 단면 기준으로 균등하게 떨어집니다.
+[`LightingCommon.hlsl:127`](../Mundi/Shaders/Common/LightingCommon.hlsl#L127-L142):
 
-색온도는 셰이더가 아니라 **C++ 라이트 컴포넌트에서 Intensity 와 함께 사전 곱셈**해 최종 색 하나만 셰이더에 넘깁니다 (커밋 `0faa756e`) — 셰이더의 per-pixel 비용과 파라미터 수를 줄입니다.
+```hlsl
+// Unreal Engine의 역제곱 감쇠 with 부드러운 윈도우 함수
+float CalculateInverseSquareFalloff(float distance, float attenuationRadius)
+{
+    float distanceSq = distance * distance;
+    float radiusSq = attenuationRadius * attenuationRadius;
+
+    // 기본 역제곱 법칙: I = 1 / (distance^2)
+    float basicFalloff = 1.0f / max(distanceSq, 0.01f * 0.01f); // 0으로 나누기 방지
+
+    // attenuationRadius에서 0에 도달하는 부드러운 윈도우 함수 적용
+    // 반경 경계에서 급격한 차단을 방지
+    float distanceRatio = saturate(distance / attenuationRadius);
+    float windowAttenuation = pow(1.0f - pow(distanceRatio, 4.0f), 2.0f);
+
+    return basicFalloff * windowAttenuation;
+}
+```
+
+Spot 원뿔 감쇠는 코사인 공간이 아니라 **각도 공간에서 보간**합니다 — `acos` 로 각도를 복원한 뒤 inner/outer cone 각도 사이를 `smoothstep` 으로 보간합니다. 코사인은 각도에 비선형이라 코사인 공간 보간은 감쇠가 한쪽으로 쏠리는데, 각도 공간에서는 원뿔 단면 기준으로 균등하게 떨어집니다. `CalculateSpotLight` 내부 (도입 커밋 `e30dedde` — 현재 파일의 해당 줄들은 이후 그림자 통합 커밋을 거치며 `git blame` 이 팀원 앞으로 되어 있지만, 도입 커밋의 본인 작성 코드와 동일합니다):
+
+```hlsl
+// Spot 원뿔 감쇠 (각도 공간에서 보간하여 중간에서 급격하게 변함)
+float cosAngle = dot(-lightDir, spotDir);
+
+// cosine 공간 대신 각도 공간에서 보간 (균등한 감쇠를 위해)
+float angle = degrees(acos(saturate(cosAngle)));  // 현재 각도 (도 단위)
+
+// inner cone에서 1, outer cone에서 0, 중간에서 급격하게 변함
+float spotAttenuation = 1.0 - smoothstep(light.InnerConeAngle, light.OuterConeAngle, angle);
+```
+
+색온도는 셰이더가 아니라 **C++ 라이트 컴포넌트에서 Intensity 와 함께 사전 곱셈**해 최종 색 하나만 셰이더에 넘깁니다 (커밋 `0faa756e`) — 셰이더의 per-pixel 비용과 파라미터 수를 줄입니다. 함수 자체는 팀원이 도입했고, 색온도를 반영하는 현재 본문이 본인 작성입니다 ([`LightComponent.cpp:81`](../Mundi/Source/Runtime/Engine/Components/LightComponent.cpp#L81-L97)):
+
+```cpp
+FLinearColor ULightComponent::GetLightColorWithIntensity() const
+{
+    // Get base light color
+    FLinearColor FinalColor = LightColor;
+
+    // Apply color temperature (6500K is neutral white)
+    FLinearColor TempColor = ColorTemperatureToRGB(Temperature);
+    FinalColor = FinalColor * TempColor;
+
+    // Apply intensity
+    FinalColor.R *= Intensity;
+    FinalColor.G *= Intensity;
+    FinalColor.B *= Intensity;
+    FinalColor.A = 1.0f;
+
+    return FinalColor;
+}
+```
 
 ## 설계 3 — OBJ/MTL 머티리얼 반영
 
