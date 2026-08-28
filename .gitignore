@@ -1,0 +1,40 @@
+# 이 저장소는 소스 코드 공개용입니다.
+# 빌드에 필요한 서드파티 라이브러리와 에셋은 로컬 작업 트리에만 두고 추적하지 않습니다.
+# 따라서 clone 만으로는 빌드되지 않습니다.
+
+
+# ── 서드파티 라이브러리 ────────────────────────────────
+# DirectXTK / DirectXTex / FBXSDK / PhysX / NvCloth / Lua / sol2 헤더·라이브러리.
+# 빌드 시 EnsurePython.ps1 이 자동 다운로드하는 embeddable Python 도 여기 들어간다.
+Mundi/ThirdParty/
+
+
+# ── 에셋 ──────────────────────────────────────────────
+# Data 는 Scripts(lua) 와 Templates 만 추적한다.
+Mundi/Data/*
+!Mundi/Data/Scripts/
+!Mundi/Data/Templates/
+
+
+# ── 자동 생성 · 캐시 ──────────────────────────────────
+# PreBuild 코드젠(RunCodeGen.ps1) 산출물
+Mundi/Generated/
+# 에셋 변환 캐시 (엔진이 재생성)
+Mundi/DerivedDataCache/
+__pycache__/
+*.py[cod]
+
+
+# ── 빌드 산출물 · 로컬 설정 ───────────────────────────
+Binaries/
+Intermediate/
+.vs/
+*.user
+Mundi/editor.ini
+Mundi/imgui.ini
+
+
+# ── AI agent ──────────────────────────────────────────
+CLAUDE.md
+AGENTS.md
+.claude/
